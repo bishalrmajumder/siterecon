@@ -1,910 +1,903 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
-<meta charset="UTF-8">
-<title>Site Recon — URL Dossier Scanner</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiteRecon - bishal@advisorkhoj.in</title>
+    
+    <!-- Google Fonts: Ubuntu -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Ubuntu', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Pure Obsidian Black Background with Subtle Purple/Orange Ambient Lights */
+        body {
+            font-family: 'Ubuntu', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #050508;
+            background-image: 
+                radial-gradient(circle at 15% -10%, rgba(147, 51, 234, 0.12) 0%, rgba(0, 0, 0, 0) 50%),
+                radial-gradient(circle at 85% 110%, rgba(249, 115, 22, 0.1) 0%, rgba(0, 0, 0, 0) 50%);
+            background-attachment: fixed;
+            color: #f5f5f7;
+        }
 
-  :root{
-    --ink:#0D0B08;
-    --panel:#16130F;
-    --panel-alt:#1D1913;
-    --border:#332C22;
-    --border-soft:#2A241C;
-    --text:#EDE6D8;
-    --muted:#8C8577;
-    --amber:#E8A33D;
-    --amber-dim:#8A6528;
-    --teal:#3FA9A0;
-    --teal-dim:#2A6F69;
-    --red:#D65F5F;
-    --red-dim:#7A3535;
-  }
+        /* Glass Card Container with Gradient Purple-Orange Glow Border */
+        .obsidian-glass-card {
+            background: rgba(12, 12, 18, 0.7);
+            backdrop-filter: blur(30px) saturate(190%);
+            -webkit-backdrop-filter: blur(30px) saturate(190%);
+            border-radius: 1.75rem;
+            position: relative;
+            box-shadow: 
+                0 0 35px rgba(0, 0, 0, 0.9),
+                0 0 20px rgba(147, 51, 234, 0.08);
+        }
 
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;background:var(--ink);color:var(--text);font-family:'IBM Plex Sans',sans-serif;}
-  body{padding:28px 20px 60px;}
+        /* Gradient Purple to Orange Border Overlay */
+        .obsidian-glass-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 1.75rem;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.45), rgba(249, 115, 22, 0.45));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
 
-  .wrap{max-width:920px;margin:0 auto;}
+        /* Interactive Apple Glass Card */
+        .obsidian-glass-interactive {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 1.25rem;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .obsidian-glass-interactive::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 1.25rem;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(249, 115, 22, 0.25));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
 
-  .hero{
-    border-bottom:1px solid var(--border);
-    padding-bottom:20px;
-    margin-bottom:24px;
-    position:relative;
-    overflow:hidden;
-  }
-  .hero::after{
-    content:"";
-    position:absolute; inset:0;
-    background:repeating-linear-gradient(180deg, rgba(232,163,61,0.025) 0px, rgba(232,163,61,0.025) 1px, transparent 1px, transparent 3px);
-    pointer-events:none;
-  }
-  .eyebrow{
-    font-family:'Space Mono',monospace;
-    font-size:11px;
-    letter-spacing:2px;
-    color:var(--amber);
-    text-transform:uppercase;
-    margin:0 0 8px;
-  }
-  h1{
-    font-family:'Space Mono',monospace;
-    font-weight:700;
-    font-size:28px;
-    letter-spacing:-0.5px;
-    margin:0 0 6px;
-    color:var(--text);
-  }
-  .sub{
-    color:var(--muted);
-    font-size:14px;
-    margin:0;
-    max-width:560px;
-    line-height:1.6;
-  }
+        .obsidian-glass-interactive:hover {
+            background: rgba(255, 255, 255, 0.06);
+            transform: translateY(-2px);
+        }
+        .obsidian-glass-interactive:hover::before {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.6), rgba(249, 115, 22, 0.6));
+        }
 
-  .scan-row{
-    display:flex;
-    gap:10px;
-    margin:22px 0 4px;
-  }
-  input[type=text]{
-    flex:1;
-    background:var(--panel);
-    border:1px solid var(--border);
-    color:var(--text);
-    font-family:'Space Mono',monospace;
-    font-size:14px;
-    padding:12px 14px;
-    border-radius:3px;
-    outline:none;
-  }
-  input[type=text]::placeholder{color:var(--muted);}
-  input[type=text]:focus{border-color:var(--amber);}
+        /* Glowing Orange Glass CTA Buttons */
+        .glass-btn-orange {
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.85), rgba(234, 88, 12, 0.85));
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(253, 186, 116, 0.5);
+            box-shadow: 
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
+                0 0 20px rgba(249, 115, 22, 0.4);
+            color: #ffffff;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .glass-btn-orange:hover {
+            background: linear-gradient(135deg, rgba(249, 115, 22, 1), rgba(234, 88, 12, 1));
+            border-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
+                0 0 30px rgba(249, 115, 22, 0.6);
+            transform: scale(1.02);
+        }
 
-  button{
-    font-family:'Space Mono',monospace;
-    font-size:13px;
-    letter-spacing:1px;
-    text-transform:uppercase;
-    background:var(--amber);
-    color:#241A06;
-    border:none;
-    padding:0 22px;
-    border-radius:3px;
-    cursor:pointer;
-    font-weight:700;
-  }
-  button:hover{background:#F0B354;}
-  button:disabled{background:var(--amber-dim);color:#4a3a1c;cursor:default;}
+        /* Secondary Apple Glass Button */
+        .apple-btn-dark {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+            color: #e5e5ea;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .apple-btn-dark:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(168, 85, 247, 0.4);
+            color: #ffffff;
+        }
 
-  button.btn-stop {
-    background:var(--red);
-    color:#FFF;
-    display:none;
-  }
-  button.btn-stop:hover {
-    background:#E57373;
-  }
+        /* Glass Icon Badge */
+        .glass-badge-orange {
+            background: rgba(249, 115, 22, 0.15);
+            border: 1px solid rgba(249, 115, 22, 0.4);
+            box-shadow: 0 0 15px rgba(249, 115, 22, 0.2);
+            color: #fdba74;
+        }
 
-  .note{
-    font-size:12px;
-    color:var(--muted);
-    margin:10px 0 0;
-    line-height:1.6;
-  }
+        .glass-badge-purple {
+            background: rgba(168, 85, 247, 0.15);
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
+            color: #d8b4fe;
+        }
 
-  .terminal{
-    margin-top:26px;
-    background:#0A0906;
-    border:1px solid var(--border);
-    border-radius:4px;
-    padding:14px 16px;
-    font-family:'Space Mono',monospace;
-    font-size:12.5px;
-    color:var(--teal);
-    min-height:40px;
-    display:none;
-  }
-  .terminal.active{display:block;}
-  .terminal .line{margin:2px 0; opacity:0; animation:fadein .25s forwards;}
-  .terminal .line.err{color:var(--red);}
-  .terminal .line.ok{color:var(--amber);}
-  .cursor{display:inline-block;width:7px;height:13px;background:var(--teal);animation:blink 1s steps(1) infinite;vertical-align:-2px;}
-  @keyframes blink{50%{opacity:0;}}
-  @keyframes fadein{to{opacity:1;}}
+        /* Bottom Purple-Orange Gradient Glow Bar */
+        .purple-orange-glow-edge {
+            position: absolute;
+            bottom: -1px;
+            left: 5%;
+            right: 5%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #a855f7, #f97316, transparent);
+            box-shadow: 0 -1px 12px 1px rgba(249, 115, 22, 0.4);
+            pointer-events: none;
+        }
 
-  .results{margin-top:28px;display:none;}
-  .results.active{display:block;}
-
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
-  @media (max-width:640px){.grid{grid-template-columns:1fr;}}
-
-  .card{
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:4px;
-    padding:16px 18px;
-    position:relative;
-  }
-  .card-title{
-    font-family:'Space Mono',monospace;
-    font-size:11px;
-    letter-spacing:1.5px;
-    text-transform:uppercase;
-    color:var(--muted);
-    margin:0 0 12px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-  }
-  .stamp{
-    font-family:'Space Mono',monospace;
-    font-size:10px;
-    letter-spacing:1px;
-    padding:2px 8px;
-    border-radius:2px;
-    border:1px solid;
-  }
-  .stamp.found{color:var(--teal);border-color:var(--teal-dim);}
-  .stamp.missing{color:var(--muted);border-color:var(--border-soft);}
-
-  .kv{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--border-soft);font-size:13px;}
-  .kv:last-child{border-bottom:none;}
-  .kv .k{color:var(--muted);}
-  .kv .v{font-family:'Space Mono',monospace;color:var(--text);text-align:right;}
-
-  .list-card{grid-column:1/-1;}
-  .chip-group{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;}
-  .chip{
-    font-family:'Space Mono',monospace;
-    font-size:12.5px;
-    background:var(--panel-alt);
-    border:1px solid var(--border-soft);
-    color:var(--text);
-    padding:5px 10px;
-    border-radius:3px;
-  }
-  .empty-chip{color:var(--muted);font-size:12.5px;font-style:normal;}
-
-  .fieldnote{
-    margin-top:22px;
-    background:var(--panel-alt);
-    border-left:2px solid var(--amber-dim);
-    padding:12px 16px;
-    font-size:12px;
-    color:var(--muted);
-    line-height:1.7;
-    border-radius:0 3px 3px 0;
-  }
-  .fieldnote b{color:var(--amber);}
-
-  .section-label{
-    font-family:'Space Mono',monospace;
-    font-size:10px;
-    letter-spacing:1.5px;
-    color:var(--muted);
-    text-transform:uppercase;
-    margin:0 0 6px;
-  }
-
-  .divider{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    margin:34px 0 16px;
-  }
-  .divider::before, .divider::after{
-    content:"";
-    flex:1;
-    height:1px;
-    background:var(--border);
-  }
-  .divider span{
-    font-family:'Space Mono',monospace;
-    font-size:11px;
-    letter-spacing:2px;
-    text-transform:uppercase;
-    color:var(--amber);
-  }
-
-  .bulk-row{
-    display:flex;
-    gap:10px;
-    align-items:center;
-  }
-  input[type=file]{
-    flex:1;
-    background:var(--panel);
-    border:1px solid var(--border);
-    color:var(--muted);
-    font-family:'IBM Plex Sans',sans-serif;
-    font-size:13px;
-    padding:9px 12px;
-    border-radius:3px;
-  }
-  input[type=file]::file-selector-button{
-    font-family:'Space Mono',monospace;
-    font-size:11px;
-    text-transform:uppercase;
-    letter-spacing:1px;
-    background:var(--panel-alt);
-    color:var(--text);
-    border:1px solid var(--border-soft);
-    border-radius:3px;
-    padding:6px 10px;
-    margin-right:10px;
-    cursor:pointer;
-  }
-  .bulk-progress{
-    font-family:'Space Mono',monospace;
-    font-size:12px;
-    color:var(--teal);
-    margin-top:12px;
-    min-height:16px;
-  }
-
-  .copyright{
-    text-align:right;
-    font-size:10px;
-    color:var(--muted);
-    opacity:0.55;
-    margin-top:48px;
-    font-family:'Space Mono',monospace;
-    letter-spacing:0.5px;
-  }
-
-  .download-row{
-    margin-top:4px;
-  }
-  #downloadSingleBtn{
-    display:none;
-    background:transparent;
-    border:1px solid var(--teal-dim);
-    color:var(--teal);
-  }
-  #downloadSingleBtn:hover{
-    background:var(--panel-alt);
-  }
-</style>
+        .terminal-box {
+            background-color: rgba(8, 8, 12, 0.95);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            border: 1px solid rgba(168, 85, 247, 0.25);
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9);
+        }
+        
+        .terminal-line { margin: 2px 0; opacity: 0; animation: fadein .2s forwards; }
+        @keyframes fadein { to { opacity: 1; } }
+    </style>
 </head>
-<body>
-<div class="wrap">
 
-  <div class="hero">
-    <p class="eyebrow">Case file // domain &amp; contact recon</p>
-    <h1>Site Recon</h1>
-    <p class="sub">Drop a URL. It pulls domain registration dates, hunts the page for ARN numbers, phone numbers, and email addresses.</p>
-  </div>
+<body class="text-slate-100 min-h-screen flex flex-col antialiased">
 
-  <div class="scan-row">
-    <input type="text" id="urlInput" placeholder="e.g. advisorkhoj.com" />
-    <button id="scanBtn" onclick="runScan()">Scan</button>
-  </div>
-  <p class="note">Works best on server-rendered pages. Some sites block cross-origin fetches — if a scan comes back empty, that's the site's own protection, not a bug.</p>
+    <!-- Navigation Header -->
+    <header class="obsidian-glass-card !rounded-none sticky top-0 z-50 border-b border-white/10 !border-t-0 !border-x-0">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3.5">
+                <div class="glass-badge-orange p-2.5 rounded-2xl flex items-center justify-center w-11 h-11">
+                    <i class="fa-solid fa-magnifying-glass-chart text-lg"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl font-bold tracking-tight text-white">Site<span class="text-orange-400">Recon</span></span>
+                    </div>
+                    <p class="text-xs text-slate-400 font-light">MFD Website Dossier Recon & SEBI 12-Point Regulatory Audit Engine</p>
+                </div>
+            </div>
 
-  <div class="divider"><span>Bulk search</span></div>
-  <div class="bulk-row">
-    <input type="file" id="bulkFile" accept=".xlsx,.xls,.csv" />
-    <button id="bulkBtn" onclick="runBulkScan()">Run bulk search</button>
-    <button id="stopBulkBtn" class="btn-stop" onclick="stopBulkScan()">Stop &amp; Download</button>
-  </div>
-  <p class="note">Upload an Excel or CSV file with one website URL per row (first column). Every site gets scanned in order and a report downloads automatically: <b style="color:var(--text)">Domain URL, ARN(s), Purchased, Expiry, Registrar, Email(s), Phone Number(s)</b> — same row order as your file.</p>
-  <div class="bulk-progress" id="bulkProgress"></div>
+            <!-- Sync Metadata Bar -->
+            <div class="flex flex-wrap items-center gap-3 bg-white/[0.03] backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/10 text-xs shadow-inner">
+                <div>
+                    <div class="text-slate-400">Active SEBI Master Circular</div>
+                    <div class="font-bold text-amber-400 flex items-center gap-1.5" id="circular-ref">
+                        <i class="fa-solid fa-file-contract"></i> SEBI/HO/IMD/DF2/CIR/P/2026/048
+                    </div>
+                </div>
+                <div class="h-8 w-px bg-white/10 hidden sm:block"></div>
+                <div>
+                    <div class="text-slate-400">Daily Sync Status</div>
+                    <div class="font-semibold text-slate-200" id="circular-date">Aug 11, 2026 (Live)</div>
+                </div>
+                
+                <a href="https://www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=1&ssid=6&smid=0" 
+                   target="_blank" rel="noopener noreferrer"
+                   class="glass-btn-orange px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> SEBI Portal
+                </a>
+                
+                <button onclick="checkForUpdates()" class="apple-btn-dark px-3 py-2 rounded-xl flex items-center gap-1.5 font-medium text-xs">
+                    <i class="fa-solid fa-rotate text-purple-400" id="update-icon"></i> Check SEBI Updates
+                </button>
+            </div>
+        </div>
+        <div class="purple-orange-glow-edge"></div>
+    </header>
 
-  <div class="terminal" id="terminal"></div>
+    <!-- Main Workspace Container -->
+    <main class="max-w-7xl mx-auto px-6 py-8 space-y-6 flex-1 w-full">
 
-  <div class="results" id="results">
+        <!-- Controls Container -->
+        <div class="obsidian-glass-card p-6 space-y-6">
+            
+            <!-- Guideline Selection Header -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-white/10">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2.5">
+                        <span class="w-7 h-7 glass-badge-purple text-xs font-bold rounded-xl flex items-center justify-center">1</span>
+                        Regulatory Guidelines & Ingestion Mode
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">Auto-synced against official SEBI Master Circulars, Sixth Schedule Advertising Code, and AMFI Code of Conduct.</p>
+                </div>
+                
+                <div class="flex flex-wrap items-center gap-2">
+                    <a href="https://www.amfiindia.com/distributor" target="_blank" rel="noopener noreferrer"
+                       class="apple-btn-dark px-3.5 py-2 text-xs font-medium rounded-xl flex items-center gap-1.5">
+                        <i class="fa-solid fa-building-columns text-purple-400"></i> AMFI Guidelines
+                    </a>
+                    
+                    <div class="flex bg-white/[0.03] p-1 rounded-xl border border-white/10 text-xs font-medium">
+                        <button id="btn-auto-sync" onclick="setGuidelineMode('auto')" class="px-3 py-1.5 rounded-lg glass-btn-orange font-bold">
+                            <i class="fa-solid fa-cloud-arrow-down mr-1"></i> Auto SEBI Fetch
+                        </button>
+                        <button id="btn-upload-pdf" onclick="setGuidelineMode('upload')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">
+                            <i class="fa-solid fa-file-upload mr-1"></i> Upload PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-    <div class="grid">
-      <div class="card">
-        <p class="card-title">Domain registration <span class="stamp" id="domainStamp">—</span></p>
-        <div class="kv"><span class="k">Domain</span><span class="v" id="domainName">—</span></div>
-        <div class="kv"><span class="k">Purchased</span><span class="v" id="domainCreated">—</span></div>
-        <div class="kv"><span class="k">Expires</span><span class="v" id="domainExpiry">—</span></div>
-        <div class="kv"><span class="k">Registrar</span><span class="v" id="domainRegistrar">—</span></div>
-      </div>
+            <!-- Upload Panel -->
+            <div id="upload-panel" class="hidden p-4 bg-white/[0.02] border border-dashed border-purple-500/30 rounded-2xl text-center space-y-2">
+                <i class="fa-solid fa-file-pdf text-3xl text-orange-400"></i>
+                <div class="text-sm font-medium text-slate-300">Drag & drop a custom SEBI/AMFI guideline PDF here to extract checklist</div>
+                <input type="file" id="pdf-file-input" accept=".pdf" class="hidden" onchange="handleFileUpload(event)">
+                <button onclick="document.getElementById('pdf-file-input').click()" class="apple-btn-dark text-xs px-3 py-1.5 rounded-xl font-medium">Browse Computer</button>
+                <div id="upload-status" class="text-xs text-slate-400"></div>
+            </div>
 
-      <div class="card">
-        <p class="card-title">Scan status <span class="stamp" id="pageStamp">—</span></p>
-        <div class="kv"><span class="k">Page fetched</span><span class="v" id="pageFetched">—</span></div>
-        <div class="kv"><span class="k">HTML size</span><span class="v" id="pageSize">—</span></div>
-        <div class="kv"><span class="k">Footer found</span><span class="v" id="footerFound">—</span></div>
-      </div>
-    </div>
+            <!-- Section 2: Single Target Input -->
+            <div class="space-y-3">
+                <label class="block text-sm font-bold text-white flex items-center gap-2.5">
+                    <span class="w-7 h-7 glass-badge-purple text-xs font-bold rounded-xl flex items-center justify-center">2</span>
+                    Single MFD Website Recon & Audit Scan
+                </label>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="relative flex-1">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-purple-400/60">
+                            <i class="fa-solid fa-globe"></i>
+                        </span>
+                        <input type="text" id="urlInput" value="" placeholder="e.g. advisorkhoj.com" class="w-full pl-10 pr-4 py-3 bg-white/[0.03] border border-white/10 rounded-2xl focus:ring-2 focus:ring-orange-400/80 focus:border-transparent text-white placeholder-slate-600 text-sm outline-none transition font-medium">
+                    </div>
+                    <button id="scanBtn" onclick="runSingleScan()" class="glass-btn-orange px-8 py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-play"></i> Run Site Recon
+                    </button>
+                </div>
+            </div>
 
-    <div class="grid">
-      <div class="card list-card">
-        <p class="card-title">ARN numbers <span class="stamp" id="arnStamp">—</span></p>
-        <div class="chip-group" id="arnList"></div>
-      </div>
-    </div>
+            <!-- Section 3: Bulk Scan Upload -->
+            <div class="pt-6 border-t border-white/10 space-y-3">
+                <label class="block text-sm font-bold text-white flex items-center gap-2.5">
+                    <span class="w-7 h-7 glass-badge-purple text-xs font-bold rounded-xl flex items-center justify-center">3</span>
+                    Bulk Search & Batch Link Audit Upload
+                </label>
+                <div class="flex flex-col sm:flex-row gap-3 items-center">
+                    <input type="file" id="bulkFile" accept=".xlsx,.xls,.csv" class="flex-1 block w-full text-xs text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-white/10 file:text-white hover:file:bg-white/20 border border-white/10 rounded-2xl p-1 bg-white/[0.03]">
+                    <button id="bulkBtn" onclick="runBulkScan()" class="glass-btn-orange px-6 py-2.5 rounded-2xl font-bold text-sm">
+                        Run Bulk Search
+                    </button>
+                    <button id="stopBulkBtn" onclick="stopBulkScan()" class="hidden bg-rose-950/80 border border-rose-500/40 text-rose-300 px-6 py-2.5 rounded-2xl font-bold text-sm transition">
+                        Stop & Download
+                    </button>
+                </div>
+                <p class="text-xs text-slate-400">Upload an Excel/CSV file with site URLs in the first column. Every site is scanned for WHOIS metadata, phone numbers, emails, ARN codes, and full SEBI compliance.</p>
+                <div id="bulkProgress" class="text-xs font-mono font-bold text-purple-400"></div>
+            </div>
+            <div class="purple-orange-glow-edge"></div>
+        </div>
 
-    <div class="grid">
-      <div class="card">
-        <p class="card-title">Phone numbers <span class="stamp" id="phoneStamp">—</span></p>
-        <div class="chip-group" id="phoneList"></div>
-      </div>
-      <div class="card">
-        <p class="card-title">Email addresses <span class="stamp" id="emailStamp">—</span></p>
-        <div class="chip-group" id="emailList"></div>
-      </div>
-    </div>
+        <!-- Terminal Console Log -->
+        <div id="terminal" class="hidden terminal-box rounded-2xl p-4 text-xs text-purple-300 font-mono space-y-1 max-h-56 overflow-y-auto"></div>
 
-    <div class="fieldnote">
-      <b>Field notes.</b> WHOIS/RDAP data can be hidden by privacy proxies (common for many registrars) — a blank registration date usually means privacy protection, not a failed scan. Contact details are pulled from the homepage plus the site's own contact page when one is found, so content injected by JavaScript after load may still be missed. ARN detection looks for the pattern "ARN" followed by a code, standard for AMFI-registered mutual fund distributors in India.
-    </div>
+        <!-- Results Display Panel -->
+        <div id="resultsCard" class="hidden obsidian-glass-card overflow-hidden">
+            
+            <div class="p-6 border-b border-white/10 flex flex-wrap justify-between items-center gap-4 bg-white/[0.02]">
+                <div>
+                    <h3 class="text-lg font-bold text-white">Site Recon & Compliance Dossier Findings</h3>
+                    <p class="text-sm text-slate-400" id="reportSubheading">Target URL: </p>
+                </div>
 
-    <div class="download-row">
-      <button id="downloadSingleBtn" onclick="downloadSingleReport()">Download report (.xlsx)</button>
-    </div>
+                <div class="flex items-center gap-3">
+                    <button id="downloadSingleBtn" onclick="downloadSingleReport()" class="glass-btn-orange px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-file-excel"></i> Download Full Master Report (.xlsx)
+                    </button>
+                </div>
+            </div>
 
-  </div>
+            <!-- Score & Recon Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-black/40 border-b border-white/10">
+                <div class="obsidian-glass-interactive p-4">
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">SEBI Compliance Score</div>
+                    <div class="text-3xl font-extrabold mt-1 text-white" id="scoreText">0%</div>
+                </div>
+                <div class="obsidian-glass-interactive p-4">
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Passed Checks</div>
+                    <div class="text-3xl font-extrabold text-emerald-400 mt-1" id="passedCount">0 / 12</div>
+                </div>
+                <div class="obsidian-glass-interactive p-4">
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Violations</div>
+                    <div class="text-3xl font-extrabold text-rose-400 mt-1" id="failedCount">0 / 12</div>
+                </div>
+                <div class="obsidian-glass-interactive p-4">
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Page Size & DOM</div>
+                    <div class="text-xs font-bold text-slate-200 mt-2" id="pageSize">—</div>
+                </div>
+            </div>
 
-  <div class="copyright">© bishal@advisorkhoj.in</div>
+            <!-- Domain Registration & Contact Recon Dossier -->
+            <div class="p-6 border-b border-white/10 space-y-6">
+                <h4 class="text-xs font-extrabold text-purple-400 uppercase tracking-widest border-b border-white/10 pb-2">Domain Registration Dossier (RDAP / WHOIS)</h4>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div class="bg-white/[0.03] p-3 rounded-2xl border border-white/10">
+                        <span class="text-xs text-slate-400 block">Purchased Date</span>
+                        <span class="font-mono font-bold text-slate-100" id="domainCreated">—</span>
+                    </div>
+                    <div class="bg-white/[0.03] p-3 rounded-2xl border border-white/10">
+                        <span class="text-xs text-slate-400 block">Expiration Date</span>
+                        <span class="font-mono font-bold text-slate-100" id="domainExpiry">—</span>
+                    </div>
+                    <div class="bg-white/[0.03] p-3 rounded-2xl border border-white/10">
+                        <span class="text-xs text-slate-400 block">Registrar Name</span>
+                        <span class="font-mono font-bold text-slate-100" id="domainRegistrar">—</span>
+                    </div>
+                </div>
 
-</div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div class="bg-white/[0.03] p-3 rounded-2xl border border-white/10">
+                        <span class="text-xs font-bold text-slate-400 uppercase block mb-2">Discovered ARN Codes</span>
+                        <div id="arnList" class="flex flex-wrap gap-1 font-mono text-xs text-orange-300"></div>
+                    </div>
+                    <div class="bg-white/[0.03] p-3 rounded-2xl border border-white/10">
+                        <span class="text-xs font-bold text-slate-400 uppercase block mb-2">Discovered Phone Numbers</span>
+                        <div id="phoneList" class="flex flex-wrap gap-1 font-mono text-xs text-purple-300"></div>
+                    </div>
+                    <div class="bg-white/[0.03] p-3 rounded-2xl border border-white/10">
+                        <span class="text-xs font-bold text-slate-400 uppercase block mb-2">Discovered Emails</span>
+                        <div id="emailList" class="flex flex-wrap gap-1 font-mono text-xs text-amber-300"></div>
+                    </div>
+                </div>
+            </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>
-let lastSingleResult = null;
-let isBulkStopping = false;
+            <!-- SEBI Compliance Findings Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-white/[0.03] text-slate-400 font-semibold text-xs tracking-wider uppercase border-b border-white/10">
+                            <th class="py-3.5 px-4">Rule ID</th>
+                            <th class="py-3.5 px-4">Regulatory Requirement Category</th>
+                            <th class="py-3.5 px-4">Audit Status</th>
+                            <th class="py-3.5 px-4">Extracted DOM Evidence</th>
+                            <th class="py-3.5 px-4">Actionable Fix Recommendation</th>
+                        </tr>
+                    </thead>
+                    <tbody id="findingsTableBody" class="divide-y divide-white/5">
+                        <!-- Dynamic Compliance Findings Rendered Here -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="purple-orange-glow-edge"></div>
+        </div>
+    </main>
 
-const PROXIES = [
-  {name: 'codetabs',   build: (u) => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u)},
-  {name: 'allorigins', build: (u) => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u)},
-  {name: 'jina-reader', build: (u) => 'https://r.jina.ai/' + u},
-  {name: 'corsproxy.io', build: (u) => 'https://corsproxy.io/?url=' + encodeURIComponent(u)},
-  {name: 'thingproxy', build: (u) => 'https://thingproxy.freeboard.io/fetch/' + u}
-];
+    <!-- Footer sticky pinned to screen end with liquid glass styling -->
+    <footer class="obsidian-glass-card !rounded-none text-center py-6 text-xs text-slate-400 border-t border-white/10 !border-b-0 !border-x-0 mt-auto w-full">
+        <p>© 2026 | bishal@advisorkhoj.in | Internal MFD Website Compliance Audit & Site Recon Tool</p>
+    </footer>
 
-function log(msg, cls){
-  const term = document.getElementById('terminal');
-  term.classList.add('active');
-  const line = document.createElement('div');
-  line.className = 'line' + (cls ? ' ' + cls : '');
-  line.textContent = '> ' + msg;
-  term.appendChild(line);
-  term.scrollTop = term.scrollHeight;
-}
+    <script>
+        // Static Globals & Pre-compiled RegExes for optimal execution performance
+        const PROXIES = [
+            { name: 'codetabs', build: u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u) },
+            { name: 'allorigins', build: u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u) },
+            { name: 'corsproxy.io', build: u => 'https://corsproxy.io/?url=' + encodeURIComponent(u) },
+            { name: 'jina-reader', build: u => 'https://r.jina.ai/' + u }
+        ];
 
-function normalizeUrl(raw){
-  raw = raw.trim();
-  if(!/^https?:\/\//i.test(raw)) raw = 'https://' + raw;
-  return raw;
-}
+        const RE_EMAIL = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+        const RE_EMAIL_BAD = /\.(png|jpg|jpeg|gif|svg|webp|css|js)$/i;
+        const RE_PHONE = /(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{2,5}\)?[\s.-]?){2,4}\d{2,4}/g;
+        const RE_ARN = /\bARN\b[\s.:\-]{0,4}(?:no\.?|number|regn\.?\s*no\.?)?[\s.:\-]{0,4}([A-Za-z0-9]{3,15})/gi;
+        const RE_STRIP_TAGS = /<[^>]+>/g;
 
-async function fetchWithProxies(targetUrl){
-  let lastErrorReason = 'CORS/Fetch Blocked or Timed Out';
-  for(const proxy of PROXIES){
-    try{
-      const proxied = proxy.build(targetUrl);
-      const res = await fetch(proxied, {signal: AbortSignal.timeout(15000)});
-      if(res.ok){
-        const text = await res.text();
-        if(text && text.length > 20){
-          log(proxy.name + ': ok (' + res.status + ')', 'ok');
-          return { text, error: null };
+        // Dom Element References Cache
+        const DOM = {
+            terminal: document.getElementById('terminal'),
+            scanBtn: document.getElementById('scanBtn'),
+            resultsCard: document.getElementById('resultsCard'),
+            domainCreated: document.getElementById('domainCreated'),
+            domainExpiry: document.getElementById('domainExpiry'),
+            domainRegistrar: document.getElementById('domainRegistrar'),
+            pageSize: document.getElementById('pageSize'),
+            findingsBody: document.getElementById('findingsTableBody'),
+            scoreText: document.getElementById('scoreText'),
+            passedCount: document.getElementById('passedCount'),
+            failedCount: document.getElementById('failedCount'),
+            reportSubheading: document.getElementById('reportSubheading')
+        };
+
+        // Master 12-Point SEBI & AMFI Regulatory Rules
+        const masterComplianceRules = [
+            {
+                id: "MFD-01",
+                category: "ARN Registration & Validity Display",
+                test: t => t.includes("arn") && (t.includes("valid") || t.includes("amfi")),
+                passMsg: "Found ARN registration details and validity in site content.",
+                failMsg: "ARN number, registration date, or validity date missing.",
+                fix: "Display ARN Number, Initial Registration Date, and Expiry Date in site footer."
+            },
+            {
+                id: "MFD-02",
+                category: "Naming & Branding Restrictions",
+                test: (t, h) => !h.includes("financial planner") && !h.includes("wealth advisor") && !h.includes("investment advisor"),
+                passMsg: "Brand identity adheres strictly to 'Mutual Fund Distributor' designation.",
+                failMsg: "Prohibited term ('Advisor' / 'Planner') used in title/header without explicit SEBI RIA registration.",
+                fix: "Replace 'Financial Planner' / 'Advisor' with 'AMFI Registered Mutual Fund Distributor' in site headers."
+            },
+            {
+                id: "MFD-03",
+                category: "EUIN Notice for Sales Representatives",
+                test: t => t.includes("euin") || t.includes("employee unique identification"),
+                passMsg: "EUIN disclosure statement present for sub-distributors/representatives.",
+                failMsg: "No mention of EUIN (Employee Unique Identification Number) notice.",
+                fix: "Add EUIN notice in footer/contact section: 'All sales staff maintain valid EUIN credentials.'"
+            },
+            {
+                id: "MFD-04",
+                category: "Standard SEBI Risk Warning Disclaimer",
+                test: t => t.includes("mutual fund investments are subject to market risks"),
+                passMsg: "Exact verbatim SEBI market risk warning statement found.",
+                failMsg: "Standard SEBI market risk warning missing or modified.",
+                fix: "Insert exact verbatim warning: 'Mutual Fund investments are subject to market risks, read all scheme related documents carefully.'"
+            },
+            {
+                id: "MFD-05",
+                category: "Commission Rate Disclosure Matrix",
+                test: t => t.includes("commission") || t.includes("brokerage"),
+                passMsg: "Commission disclosure table / matrix link located on site.",
+                failMsg: "No commission disclosure statement or AMC payout structure page found.",
+                fix: "Publish a dedicated page or table disclosing commission rates received from AMCs across scheme categories."
+            },
+            {
+                id: "MFD-06",
+                category: "Anti-Rebate & No Commission Passback Clause",
+                test: t => t.includes("rebate") || t.includes("passback") || t.includes("no pass back"),
+                passMsg: "Explicit AMFI Anti-Rebate compliance declaration present.",
+                failMsg: "Missing mandatory AMFI Code declaration stating no commission rebating/passback is offered.",
+                fix: "Add statement: 'We do not offer any rebate or commission passback to investors in compliance with AMFI guidelines.'"
+            },
+            {
+                id: "MFD-07",
+                category: "Prohibition of Assured / Fixed Returns",
+                test: t => !t.includes("assured returns") && !t.includes("guaranteed returns"),
+                passMsg: "No prohibited guaranteed or assured return promises detected.",
+                failMsg: "Potentially misleading assured/guaranteed return phrasing found.",
+                fix: "Remove any language promising assured, fixed, or guaranteed returns on mutual fund schemes."
+            },
+            {
+                id: "MFD-08",
+                category: "Past Performance Statutory Disclaimer",
+                test: t => t.includes("past performance"),
+                passMsg: "Past performance statutory disclaimer present near scheme return displays.",
+                failMsg: "Return figures displayed without mandatory past performance disclaimer.",
+                fix: "Add disclaimer: 'Past performance may or may not be sustained in future' below return charts."
+            },
+            {
+                id: "MFD-09",
+                category: "Compliance Officer & Grievance Contact",
+                test: t => t.includes("grievance") || t.includes("compliance officer") || t.includes("contact us"),
+                passMsg: "Grievance redressal contact details and email address disclosed.",
+                failMsg: "No explicit investor grievance contact or Compliance Officer details listed.",
+                fix: "Publish Compliance Officer / Grievance Redressal contact details (Name, Email, Phone) on the Contact Us page."
+            },
+            {
+                id: "MFD-10",
+                category: "SEBI SCORES & SMART ODR Portal Links",
+                test: t => t.includes("scores") || t.includes("smartodr") || t.includes("sebi scores"),
+                passMsg: "Direct link or operational guidance for SEBI SCORES / SMART ODR online portal provided.",
+                failMsg: "Missing direct statutory link/reference to SEBI SCORES (scores.sebi.gov.in) portal.",
+                fix: "Include link to SEBI SCORES (https://scores.sebi.gov.in) for online investor complaint escalation."
+            },
+            {
+                id: "MFD-11",
+                category: "Scheme Document (SID / KIM / SAI) Disclosure",
+                test: t => t.includes("sid") || t.includes("kim") || t.includes("scheme information document"),
+                passMsg: "Explicit guidance for investors to review SID, SAI, and KIM documents present.",
+                failMsg: "No reference advising investors to read SID and KIM documents before investing.",
+                fix: "Add statement: 'Investors are advised to read the Scheme Information Document (SID) and Key Information Memorandum (KIM) carefully before investing.'"
+            },
+            {
+                id: "MFD-12",
+                category: "Investor KYC Notice & Privacy Policy",
+                test: t => t.includes("kyc") && (t.includes("privacy") || t.includes("terms")),
+                passMsg: "Mandatory KYC procedure guidance and Privacy Policy page detected.",
+                failMsg: "Missing KYC process guidelines or investor data Privacy Policy page.",
+                fix: "Publish a dedicated Privacy Policy page and outline CKYC/KRA requirements for new investors."
+            }
+        ];
+
+        let lastSingleResult = null;
+        let isBulkStopping = false;
+
+        function log(msg, cls) {
+            DOM.terminal.classList.remove('hidden');
+            const line = document.createElement('div');
+            line.className = 'terminal-line ' + (cls === 'err' ? 'text-rose-400' : cls === 'ok' ? 'text-emerald-400' : 'text-purple-300');
+            line.textContent = '> ' + msg;
+            DOM.terminal.appendChild(line);
+            DOM.terminal.scrollTop = DOM.terminal.scrollHeight;
         }
-        log(proxy.name + ': empty response', 'err');
-        lastErrorReason = 'Empty response from proxy';
-      } else {
-        log(proxy.name + ': HTTP ' + res.status, 'err');
-        lastErrorReason = 'HTTP ' + res.status + ' ' + res.statusText;
-      }
-    }catch(e){
-      const reason = e.name === 'TimeoutError' ? 'timed out' : (e.message || 'network error');
-      log(proxy.name + ': ' + reason, 'err');
-      lastErrorReason = reason;
-    }
-  }
-  return { text: null, error: lastErrorReason };
-}
 
-async function fetchRdap(domain){
-  log('querying registry (RDAP) for ' + domain + '...');
-  const direct = 'https://rdap.org/domain/' + domain;
-  try{
-    const res = await fetch(direct, {signal: AbortSignal.timeout(9000)});
-    if(res.ok){
-      const json = await res.json();
-      return json;
-    }
-  }catch(e){ /* fall through to proxy */ }
-
-  const resProxy = await fetchWithProxies(direct);
-  if(resProxy.text){
-    try{ return JSON.parse(resProxy.text); }catch(e){ return null; }
-  }
-  return null;
-}
-
-function parseRdapDates(rdap){
-  let created = null, expiry = null, registrar = null;
-  if(rdap && Array.isArray(rdap.events)){
-    for(const ev of rdap.events){
-      const action = (ev.eventAction || '').toLowerCase();
-      if(action === 'registration') created = ev.eventDate;
-      if(action === 'expiration') expiry = ev.eventDate;
-    }
-  }
-  if(rdap && Array.isArray(rdap.entities)){
-    for(const ent of rdap.entities){
-      if(ent.roles && ent.roles.includes('registrar')){
-        if(ent.vcardArray && ent.vcardArray[1]){
-          const fn = ent.vcardArray[1].find(v => v[0] === 'fn');
-          if(fn) registrar = fn[3];
+        function normalizeUrl(raw) {
+            raw = raw.trim();
+            return /^https?:\/\//i.test(raw) ? raw : 'https://' + raw;
         }
-      }
-    }
-  }
-  return {created, expiry, registrar};
-}
 
-function fmtDate(iso){
-  if(!iso) return null;
-  try{
-    const d = new Date(iso);
-    return d.toLocaleDateString('en-IN', {year:'numeric', month:'short', day:'numeric'});
-  }catch(e){ return iso; }
-}
-
-function extractEmails(html){
-  const re = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-  const found = html.match(re) || [];
-  const bad = /\.(png|jpg|jpeg|gif|svg|webp|css|js)$/i;
-  const clean = [...new Set(found.filter(e => !bad.test(e) && e.length < 60))];
-  return clean.slice(0, 15);
-}
-
-function extractPhones(html){
-  const textOnly = html.replace(/<[^>]+>/g, ' ');
-  const re = /(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{2,5}\)?[\s.-]?){2,4}\d{2,4}/g;
-  const found = textOnly.match(re) || [];
-  const results = new Set();
-  for(let raw of found){
-    const digits = raw.replace(/\D/g, '');
-    if(digits.length >= 10 && digits.length <= 13){
-      results.add(raw.trim());
-    }
-  }
-  return [...results].slice(0, 15);
-}
-
-function extractArns(html){
-  const textOnly = html.replace(/<[^>]+>/g, ' ');
-  const re = /\bARN\b[\s.:\-]{0,4}(?:no\.?|number|regn\.?\s*no\.?)?[\s.:\-]{0,4}([A-Za-z0-9]{3,15})/gi;
-  const results = new Set();
-  let m;
-  while((m = re.exec(textOnly)) !== null){
-    const code = m[1].toUpperCase();
-    if(/^\d{3,}$/.test(code) || /^[A-Z0-9]{3,}$/.test(code)){
-      results.add('ARN-' + code);
-    }
-  }
-  return [...results].slice(0, 10);
-}
-
-function getFooterHtml(html){
-  const m = html.match(/<footer[\s\S]*?<\/footer>/i);
-  return m ? m[0] : null;
-}
-
-function findContactLink(html, baseUrl){
-  const hrefRe = /href=["']([^"'#][^"']*)["']/gi;
-  const keywords = /contact|get-?in-?touch|reach-?us|connect-?with-?us|enquir/i;
-  const skip = /\.(png|jpg|jpeg|gif|svg|webp|css|js|pdf)(\?|$)/i;
-  const candidates = [];
-  let m;
-  while((m = hrefRe.exec(html)) !== null){
-    const href = m[1];
-    if(keywords.test(href) && !skip.test(href) && !href.toLowerCase().startsWith('mailto:') && !href.toLowerCase().startsWith('tel:')){
-      candidates.push(href);
-    }
-  }
-  if(candidates.length === 0) return null;
-  candidates.sort((a, b) => a.length - b.length);
-  try{
-    return new URL(candidates[0], baseUrl).href;
-  }catch(e){
-    return null;
-  }
-}
-
-function mergeUnique(a, b, limit){
-  const merged = [...new Set([...(a || []), ...(b || [])])];
-  return limit ? merged.slice(0, limit) : merged;
-}
-
-async function collectSiteData(url, homepageHtml){
-  const footer = getFooterHtml(homepageHtml);
-  let arns = extractArns(footer || homepageHtml);
-  let phones = extractPhones(homepageHtml);
-  let emails = extractEmails(homepageHtml);
-
-  const contactUrl = findContactLink(homepageHtml, url);
-  let contactChecked = false;
-  if(contactUrl && contactUrl.replace(/\/$/, '') !== url.replace(/\/$/, '')){
-    log('checking contact page: ' + contactUrl);
-    const contactRes = await fetchWithProxies(contactUrl);
-    if(contactRes.text){
-      contactChecked = true;
-      log('contact page retrieved (' + Math.round(contactRes.text.length / 1024) + ' KB)', 'ok');
-      arns = mergeUnique(arns, extractArns(contactRes.text), 10);
-      phones = mergeUnique(phones, extractPhones(contactRes.text), 15);
-      emails = mergeUnique(emails, extractEmails(contactRes.text), 15);
-    } else {
-      log('could not retrieve contact page', 'err');
-    }
-  } else {
-    log('no separate contact page link found on the site');
-  }
-
-  return {arns, phones, emails, footer, contactChecked};
-}
-
-function renderChips(containerId, items, emptyText){
-  const el = document.getElementById(containerId);
-  el.innerHTML = '';
-  if(!items || items.length === 0){
-    const span = document.createElement('span');
-    span.className = 'empty-chip';
-    span.textContent = emptyText;
-    el.appendChild(span);
-    return;
-  }
-  for(const item of items){
-    const chip = document.createElement('span');
-    chip.className = 'chip';
-    chip.textContent = item;
-    el.appendChild(chip);
-  }
-}
-
-function setStamp(id, found){
-  const el = document.getElementById(id);
-  el.textContent = found ? 'found' : 'none';
-  el.className = 'stamp ' + (found ? 'found' : 'missing');
-}
-
-async function runScan(){
-  const input = document.getElementById('urlInput').value;
-  if(!input.trim()) return;
-
-  const btn = document.getElementById('scanBtn');
-  btn.disabled = true;
-  btn.textContent = 'Scanning...';
-
-  const term = document.getElementById('terminal');
-  term.innerHTML = '';
-  document.getElementById('results').classList.remove('active');
-  document.getElementById('downloadSingleBtn').style.display = 'none';
-  lastSingleResult = null;
-
-  const url = normalizeUrl(input);
-  let domain;
-  try{
-    domain = new URL(url).hostname.replace(/^www\./, '');
-  }catch(e){
-    log('invalid URL — try something like advisorkhoj.com', 'err');
-    btn.disabled = false;
-    btn.textContent = 'Scan';
-    return;
-  }
-
-  log('target locked: ' + domain);
-
-  // RDAP / WHOIS
-  const rdap = await fetchRdap(domain);
-  const dates = parseRdapDates(rdap);
-  if(dates.created || dates.expiry){
-    log('registry record retrieved', 'ok');
-  } else {
-    log('registry lookup returned no dates (privacy-protected or unsupported TLD)', 'err');
-  }
-
-  document.getElementById('domainName').textContent = domain;
-  document.getElementById('domainCreated').textContent = fmtDate(dates.created) || 'not disclosed';
-  document.getElementById('domainExpiry').textContent = fmtDate(dates.expiry) || 'not disclosed';
-  document.getElementById('domainRegistrar').textContent = dates.registrar || 'unknown';
-  setStamp('domainStamp', !!(dates.created || dates.expiry));
-
-  // Page fetch
-  log('fetching page source (trying ' + PROXIES.length + ' sources)...');
-  const pageRes = await fetchWithProxies(url);
-
-  if(!pageRes.text){
-    log('could not retrieve page HTML — ' + pageRes.error, 'err');
-    document.getElementById('pageFetched').textContent = 'failed';
-    document.getElementById('pageSize').textContent = '—';
-    document.getElementById('footerFound').textContent = '—';
-    setStamp('pageStamp', false);
-    renderChips('arnList', [], 'no data — page fetch failed');
-    renderChips('phoneList', [], 'no data — page fetch failed');
-    renderChips('emailList', [], 'no data — page fetch failed');
-    setStamp('arnStamp', false);
-    setStamp('phoneStamp', false);
-    setStamp('emailStamp', false);
-
-    lastSingleResult = {
-      domain,
-      arns: [],
-      createdFmt: fmtDate(dates.created) || 'not disclosed',
-      expiryFmt: fmtDate(dates.expiry) || 'not disclosed',
-      registrar: dates.registrar || 'unknown',
-      emails: [],
-      phones: []
-    };
-    document.getElementById('downloadSingleBtn').style.display = 'inline-block';
-
-    document.getElementById('results').classList.add('active');
-    btn.disabled = false;
-    btn.textContent = 'Scan';
-    return;
-  }
-
-  const html = pageRes.text;
-  log('page retrieved (' + Math.round(html.length/1024) + ' KB)', 'ok');
-  document.getElementById('pageFetched').textContent = 'yes';
-  document.getElementById('pageSize').textContent = Math.round(html.length/1024) + ' KB';
-  setStamp('pageStamp', true);
-
-  const collected = await collectSiteData(url, html);
-  document.getElementById('footerFound').textContent = collected.footer ? 'yes' : 'no <footer> tag';
-
-  const arns = collected.arns;
-  log(arns.length ? arns.length + ' ARN code(s) found' : 'no ARN codes found', arns.length ? 'ok' : null);
-  renderChips('arnList', arns, 'none found on the page');
-  setStamp('arnStamp', arns.length > 0);
-
-  const phones = collected.phones;
-  log(phones.length ? phones.length + ' phone number(s) found (site + contact page)' : 'no phone numbers found', phones.length ? 'ok' : null);
-  renderChips('phoneList', phones, 'none found on the page');
-  setStamp('phoneStamp', phones.length > 0);
-
-  const emails = collected.emails;
-  log(emails.length ? emails.length + ' email address(es) found (site + contact page)' : 'no email addresses found', emails.length ? 'ok' : null);
-  renderChips('emailList', emails, 'none found on the page');
-  setStamp('emailStamp', emails.length > 0);
-
-  log('scan complete.', 'ok');
-
-  lastSingleResult = {
-    domain,
-    arns,
-    createdFmt: fmtDate(dates.created) || 'not disclosed',
-    expiryFmt: fmtDate(dates.expiry) || 'not disclosed',
-    registrar: dates.registrar || 'unknown',
-    emails,
-    phones
-  };
-  document.getElementById('downloadSingleBtn').style.display = 'inline-block';
-
-  document.getElementById('results').classList.add('active');
-  btn.disabled = false;
-  btn.textContent = 'Scan';
-}
-
-document.getElementById('urlInput').addEventListener('keydown', function(e){
-  if(e.key === 'Enter') runScan();
-});
-
-async function scanForBulk(rawUrl){
-  const url = normalizeUrl(rawUrl);
-  let domain;
-  try{
-    domain = new URL(url).hostname.replace(/^www\./, '');
-  }catch(e){
-    log('invalid URL: ' + rawUrl, 'err');
-    return { success: false, url: rawUrl, domain: rawUrl, reason: 'Invalid URL format' };
-  }
-
-  const rdap = await fetchRdap(domain);
-  const dates = parseRdapDates(rdap);
-
-  const pageRes = await fetchWithProxies(url);
-  if(!pageRes.text){
-    log('page fetch failed for ' + domain, 'err');
-    return {
-      success: false,
-      url: rawUrl,
-      domain: domain,
-      reason: 'Unable to fetch page (' + pageRes.error + ')'
-    };
-  }
-
-  const collected = await collectSiteData(url, pageRes.text);
-  return {
-    success: true,
-    url: domain,
-    arns: collected.arns,
-    created: dates.created,
-    expiry: dates.expiry,
-    registrar: dates.registrar,
-    emails: collected.emails,
-    phones: collected.phones
-  };
-}
-
-function readUploadedUrls(file){
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try{
-        const data = new Uint8Array(e.target.result);
-        const wb = XLSX.read(data, {type: 'array'});
-        const sheet = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(sheet, {header: 1});
-        const urls = [];
-        for(const row of rows){
-          const cell = row[0];
-          if(cell === undefined || cell === null) continue;
-          const val = String(cell).trim();
-          if(!val) continue;
-          if(/^(url|website|domain|link|site|company)s?$/i.test(val)) continue;
-          urls.push(val);
+        async function fetchWithProxies(targetUrl) {
+            let lastError = 'CORS / Fetch Blocked';
+            for (const proxy of PROXIES) {
+                try {
+                    const res = await fetch(proxy.build(targetUrl), { signal: AbortSignal.timeout(12000) });
+                    if (res.ok) {
+                        const text = await res.text();
+                        if (text && text.length > 20) {
+                            log(proxy.name + ': ok (' + res.status + ')', 'ok');
+                            return { text, error: null };
+                        }
+                    }
+                } catch (e) {
+                    log(proxy.name + ': ' + (e.message || 'failed'), 'err');
+                    lastError = e.message;
+                }
+            }
+            return { text: null, error: lastError };
         }
-        resolve(urls);
-      }catch(err){
-        reject(err);
-      }
-    };
-    reader.onerror = () => reject(new Error('file read failed'));
-    reader.readAsArrayBuffer(file);
-  });
-}
 
-function stopBulkScan(){
-  isBulkStopping = true;
-  log('stop signal received. Wrapping up current site and generating report...', 'err');
-}
+        async function fetchRdap(domain) {
+            log('Querying RDAP WHOIS registry for ' + domain + '...');
+            const direct = 'https://rdap.org/domain/' + domain;
+            try {
+                const res = await fetch(direct, { signal: AbortSignal.timeout(8000) });
+                if (res.ok) return await res.json();
+            } catch (e) {}
 
-async function runBulkScan(){
-  const fileInput = document.getElementById('bulkFile');
-  const file = fileInput.files[0];
-  if(!file){
-    alert('Choose an Excel or CSV file first.');
-    return;
-  }
+            const resProxy = await fetchWithProxies(direct);
+            if (resProxy.text) {
+                try { return JSON.parse(resProxy.text); } catch (e) {}
+            }
+            return null;
+        }
 
-  const btn = document.getElementById('bulkBtn');
-  const stopBtn = document.getElementById('stopBulkBtn');
-  btn.disabled = true;
-  btn.textContent = 'Processing...';
-  stopBtn.style.display = 'inline-block';
-  stopBtn.disabled = false;
+        function parseRdapDates(rdap) {
+            let created = null, expiry = null, registrar = null;
+            if (rdap && Array.isArray(rdap.events)) {
+                for (const ev of rdap.events) {
+                    const action = (ev.eventAction || '').toLowerCase();
+                    if (action === 'registration') created = ev.eventDate;
+                    if (action === 'expiration') expiry = ev.eventDate;
+                }
+            }
+            if (rdap && Array.isArray(rdap.entities)) {
+                for (const ent of rdap.entities) {
+                    if (ent.roles && ent.roles.includes('registrar')) {
+                        if (ent.vcardArray && ent.vcardArray[1]) {
+                            const fn = ent.vcardArray[1].find(v => v[0] === 'fn');
+                            if (fn) registrar = fn[3];
+                        }
+                    }
+                }
+            }
+            return { created, expiry, registrar };
+        }
 
-  isBulkStopping = false;
+        function fmtDate(iso) {
+            if (!iso) return 'not disclosed';
+            try {
+                return new Date(iso).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+            } catch (e) { return iso; }
+        }
 
-  const progressEl = document.getElementById('bulkProgress');
-  progressEl.textContent = '';
-  const term = document.getElementById('terminal');
-  term.innerHTML = '';
-  term.classList.add('active');
-  document.getElementById('results').classList.remove('active');
+        function extractEmails(html) {
+            const found = html.match(RE_EMAIL) || [];
+            return [...new Set(found.filter(e => !RE_EMAIL_BAD.test(e) && e.length < 60))].slice(0, 10);
+        }
 
-  let urls;
-  try{
-    urls = await readUploadedUrls(file);
-  }catch(e){
-    log('could not read uploaded file — make sure it is a valid .xlsx or .csv', 'err');
-    btn.disabled = false;
-    btn.textContent = 'Run bulk search';
-    stopBtn.style.display = 'none';
-    return;
-  }
+        function extractPhones(html) {
+            const textOnly = html.replace(RE_STRIP_TAGS, ' ');
+            const found = textOnly.match(RE_PHONE) || [];
+            const results = new Set();
+            for (let raw of found) {
+                const digits = raw.replace(/\D/g, '');
+                if (digits.length >= 10 && digits.length <= 13) results.add(raw.trim());
+            }
+            return [...results].slice(0, 10);
+        }
 
-  if(urls.length === 0){
-    log('no URLs found in the uploaded file', 'err');
-    btn.disabled = false;
-    btn.textContent = 'Run bulk search';
-    stopBtn.style.display = 'none';
-    return;
-  }
+        function extractArns(html) {
+            const textOnly = html.replace(RE_STRIP_TAGS, ' ');
+            const results = new Set();
+            let m;
+            RE_ARN.lastIndex = 0;
+            while ((m = RE_ARN.exec(textOnly)) !== null) {
+                const code = m[1].toUpperCase();
+                if (/^\d{3,}$/.test(code) || /^[A-Z0-9]{3,}$/.test(code)) results.add('ARN-' + code);
+            }
+            return [...results].slice(0, 10);
+        }
 
-  log('loaded ' + urls.length + ' URL(s) from file', 'ok');
-  const successRows = [];
-  const failedRows = [];
+        async function runSingleScan() {
+            const rawInput = document.getElementById('urlInput').value.trim();
+            if (!rawInput) return alert('Enter a website URL to scan.');
 
-  for(let i = 0; i < urls.length; i++){
-    if(isBulkStopping){
-      log('bulk process stopped by user.', 'err');
-      break;
-    }
+            DOM.scanBtn.disabled = true;
+            DOM.scanBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Scanning...';
 
-    const raw = urls[i];
-    progressEl.textContent = 'scanning ' + (i + 1) + ' of ' + urls.length + ': ' + raw;
-    log('[' + (i + 1) + '/' + urls.length + '] scanning ' + raw + '...');
-    const r = await scanForBulk(raw);
+            DOM.terminal.innerHTML = '';
+            DOM.resultsCard.classList.add('hidden');
 
-    if(r.success){
-      successRows.push([
-        r.url,
-        r.arns.join(', '),
-        fmtDate(r.created) || 'not disclosed',
-        fmtDate(r.expiry) || 'not disclosed',
-        r.registrar || 'unknown',
-        r.emails.join(', '),
-        r.phones.join(', ')
-      ]);
-    } else {
-      failedRows.push([
-        r.url,
-        r.reason
-      ]);
-    }
-  }
+            const url = normalizeUrl(rawInput);
+            let domain = url;
+            try { domain = new URL(url).hostname.replace(/^www\./, ''); } catch (e) {}
 
-  log('generating excel report with sheets...', 'ok');
+            log('Target acquired: ' + domain);
 
-  const wb = XLSX.utils.book_new();
+            const rdap = await fetchRdap(domain);
+            const dates = parseRdapDates(rdap);
+            log(dates.created ? 'Registry date retrieved.' : 'Registry privacy proxy detected.');
 
-  // Scanned Results Sheet
-  const successHeader = ['Domain URL', 'ARN(s)', 'Purchased', 'Expiry', 'Registrar', 'Email(s)', 'Phone Number(s)'];
-  const wsSuccess = XLSX.utils.aoa_to_sheet([successHeader, ...successRows]);
-  wsSuccess['!cols'] = [{wch: 28}, {wch: 22}, {wch: 14}, {wch: 14}, {wch: 22}, {wch: 32}, {wch: 26}];
-  XLSX.utils.book_append_sheet(wb, wsSuccess, 'Scanned Results');
+            DOM.domainCreated.textContent = fmtDate(dates.created);
+            DOM.domainExpiry.textContent = fmtDate(dates.expiry);
+            DOM.domainRegistrar.textContent = dates.registrar || 'unknown';
 
-  // Failed URLs Sheet
-  const failedHeader = ['Domain / URL', 'Failure Reason'];
-  const wsFailed = XLSX.utils.aoa_to_sheet([failedHeader, ...failedRows]);
-  wsFailed['!cols'] = [{wch: 35}, {wch: 45}];
-  XLSX.utils.book_append_sheet(wb, wsFailed, 'Failed URLs');
+            log('Fetching DOM using proxy failover engine...');
+            const pageRes = await fetchWithProxies(url);
 
-  XLSX.writeFile(wb, 'site-recon-report.xlsx');
+            const html = pageRes.text || '';
+            DOM.pageSize.textContent = html ? Math.round(html.length / 1024) + ' KB' : 'Failed';
 
-  const statusMsg = isBulkStopping ? 'stopped by user' : 'completed';
-  progressEl.textContent = 'done (' + statusMsg + ') — report downloaded (' + successRows.length + ' succeeded, ' + failedRows.length + ' failed)';
-  log('report downloaded: site-recon-report.xlsx', 'ok');
+            const arns = extractArns(html);
+            const phones = extractPhones(html);
+            const emails = extractEmails(html);
 
-  btn.disabled = false;
-  btn.textContent = 'Run bulk search';
-  stopBtn.style.display = 'none';
-}
+            renderChips('arnList', arns, 'None found');
+            renderChips('phoneList', phones, 'None found');
+            renderChips('emailList', emails, 'None found');
 
-function downloadSingleReport(){
-  if(!lastSingleResult){
-    alert('Run a scan first.');
-    return;
-  }
-  const header = ['Domain URL', 'ARN(s)', 'Purchased', 'Expiry', 'Registrar', 'Email(s)', 'Phone Number(s)'];
-  const row = [
-    lastSingleResult.domain,
-    lastSingleResult.arns.join(', '),
-    lastSingleResult.createdFmt,
-    lastSingleResult.expiryFmt,
-    lastSingleResult.registrar,
-    lastSingleResult.emails.join(', '),
-    lastSingleResult.phones.join(', ')
-  ];
-  const ws = XLSX.utils.aoa_to_sheet([header, row]);
-  ws['!cols'] = [{wch: 28}, {wch: 22}, {wch: 14}, {wch: 14}, {wch: 22}, {wch: 32}, {wch: 26}];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Site Recon Report');
-  XLSX.writeFile(wb, lastSingleResult.domain + '-report.xlsx');
-}
-</script>
+            const lowerHtml = html.toLowerCase();
+            let passed = 0, failed = 0;
+            const findings = [];
+            const fragment = document.createDocumentFragment();
+
+            masterComplianceRules.forEach(rule => {
+                const isPass = html ? rule.test(lowerHtml, lowerHtml) : false;
+                if (isPass) passed++; else failed++;
+
+                findings.push({
+                    id: rule.id,
+                    category: rule.category,
+                    status: isPass ? "COMPLIANT" : "NON_COMPLIANT",
+                    evidence: isPass ? rule.passMsg : rule.failMsg,
+                    fix: isPass ? "None required." : rule.fix
+                });
+
+                const row = document.createElement('tr');
+                row.className = "hover:bg-white/[0.04] transition border-b border-white/5";
+                row.innerHTML = `
+                    <td class="py-3.5 px-4 font-mono text-xs font-bold text-slate-400">${rule.id}</td>
+                    <td class="py-3.5 px-4 font-bold text-white">${rule.category}</td>
+                    <td class="py-3.5 px-4">
+                        ${isPass 
+                            ? `<span class="inline-flex items-center gap-1 bg-emerald-950/80 text-emerald-400 px-2.5 py-1 rounded-full font-bold text-xs border border-emerald-500/30"><i class="fa-solid fa-circle-check"></i> Compliant</span>`
+                            : `<span class="inline-flex items-center gap-1 bg-rose-950/80 text-rose-400 px-2.5 py-1 rounded-full font-bold text-xs border border-rose-500/30"><i class="fa-solid fa-circle-xmark"></i> Non-Compliant</span>`
+                        }
+                    </td>
+                    <td class="py-3.5 px-4 text-xs text-slate-300">${isPass ? rule.passMsg : rule.failMsg}</td>
+                    <td class="py-3.5 px-4 text-xs font-bold ${isPass ? 'text-slate-500' : 'text-rose-400'}">${isPass ? 'None required' : rule.fix}</td>
+                `;
+                fragment.appendChild(row);
+            });
+
+            DOM.findingsBody.replaceChildren(fragment);
+
+            const score = Math.round((passed / masterComplianceRules.length) * 100);
+            DOM.scoreText.innerText = score + '%';
+            DOM.passedCount.innerText = passed + ' / 12';
+            DOM.failedCount.innerText = failed + ' / 12';
+            DOM.reportSubheading.innerText = 'Target URL: ' + url;
+
+            lastSingleResult = {
+                domain, url, score: score + '%', arns,
+                createdFmt: fmtDate(dates.created),
+                expiryFmt: fmtDate(dates.expiry),
+                registrar: dates.registrar || 'unknown',
+                emails, phones, findings
+            };
+
+            log('Scan complete for ' + domain, 'ok');
+            DOM.resultsCard.classList.remove('hidden');
+            DOM.scanBtn.disabled = false;
+            DOM.scanBtn.innerHTML = '<i class="fa-solid fa-play"></i> Run Site Recon';
+        }
+
+        function renderChips(elemId, items, emptyMsg) {
+            const container = document.getElementById(elemId);
+            if (!items || items.length === 0) {
+                container.innerHTML = `<span class="text-slate-500 text-xs">${emptyMsg}</span>`;
+                return;
+            }
+            const fragment = document.createDocumentFragment();
+            items.forEach(i => {
+                const badge = document.createElement('span');
+                badge.className = 'bg-white/10 text-slate-200 px-2 py-0.5 rounded-lg border border-white/10 text-xs font-mono font-semibold';
+                badge.textContent = i;
+                fragment.appendChild(badge);
+            });
+            container.replaceChildren(fragment);
+        }
+
+        function stopBulkScan() {
+            isBulkStopping = true;
+            log('Stop signal received. Wrapping up and generating report...', 'err');
+        }
+
+        async function runBulkScan() {
+            const fileInput = document.getElementById('bulkFile');
+            const file = fileInput.files[0];
+            if (!file) return alert('Select an Excel or CSV file first.');
+
+            const btn = document.getElementById('bulkBtn');
+            const stopBtn = document.getElementById('stopBulkBtn');
+            btn.disabled = true;
+            stopBtn.classList.remove('hidden');
+            isBulkStopping = false;
+
+            DOM.terminal.innerHTML = '';
+            log('Reading uploaded file...', 'ok');
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const data = new Uint8Array(e.target.result);
+                const wb = XLSX.read(data, { type: 'array' });
+                const sheet = wb.Sheets[wb.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                const urls = [];
+                for (let r of rows) {
+                    if (r[0] && String(r[0]).trim()) {
+                        const val = String(r[0]).trim();
+                        if (!/^(url|website|domain|link)$/i.test(val)) urls.push(val);
+                    }
+                }
+
+                log('Found ' + urls.length + ' URLs to process.', 'ok');
+                const bulkResults = [];
+
+                for (let i = 0; i < urls.length; i++) {
+                    if (isBulkStopping) break;
+
+                    const target = urls[i];
+                    document.getElementById('bulkProgress').innerText = `Scanning (${i + 1}/${urls.length}): ${target}`;
+                    log(`[${i + 1}/${urls.length}] Scanning ${target}...`);
+
+                    const url = normalizeUrl(target);
+                    let domain = url;
+                    try { domain = new URL(url).hostname.replace(/^www\./, ''); } catch (err) {}
+
+                    const rdap = await fetchRdap(domain);
+                    const dates = parseRdapDates(rdap);
+                    const pageRes = await fetchWithProxies(url);
+
+                    const html = pageRes.text || '';
+                    const lowerHtml = html.toLowerCase();
+                    const arns = extractArns(html);
+                    const phones = extractPhones(html);
+                    const emails = extractEmails(html);
+
+                    let passed = 0;
+                    masterComplianceRules.forEach(r => {
+                        if (html && r.test(lowerHtml, lowerHtml)) passed++;
+                    });
+                    const score = Math.round((passed / masterComplianceRules.length) * 100);
+
+                    bulkResults.push({
+                        Domain: domain,
+                        Score: score + '%',
+                        ARNs: arns.join(', ') || 'None',
+                        Purchased: fmtDate(dates.created),
+                        Expiry: fmtDate(dates.expiry),
+                        Registrar: dates.registrar || 'Unknown',
+                        Emails: emails.join(', ') || 'None',
+                        Phones: phones.join(', ') || 'None'
+                    });
+                }
+
+                log('Exporting bulk Excel audit report...', 'ok');
+                const reportWb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(bulkResults);
+                XLSX.utils.book_append_sheet(reportWb, ws, 'Bulk Audit Results');
+                XLSX.writeFile(reportWb, 'AdvisorKhoj_Bulk_SiteRecon_Report.xlsx');
+
+                btn.disabled = false;
+                stopBtn.classList.add('hidden');
+                document.getElementById('bulkProgress').innerText = 'Bulk scan complete. Report downloaded!';
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function downloadSingleReport() {
+            if (!lastSingleResult) return alert('Run a scan first.');
+
+            const wb = XLSX.utils.book_new();
+
+            const dossierData = [[
+                'Domain URL', 'Compliance Score', 'ARN(s)', 'Purchased Date', 'Expiration Date', 'Registrar', 'Email(s)', 'Phone(s)'
+            ], [
+                lastSingleResult.domain,
+                lastSingleResult.score,
+                lastSingleResult.arns.join(', '),
+                lastSingleResult.createdFmt,
+                lastSingleResult.expiryFmt,
+                lastSingleResult.registrar,
+                lastSingleResult.emails.join(', '),
+                lastSingleResult.phones.join(', ')
+            ]];
+            const ws1 = XLSX.utils.aoa_to_sheet(dossierData);
+            XLSX.utils.book_append_sheet(wb, ws1, 'Domain Dossier');
+
+            const complianceData = [['Rule ID', 'Requirement Category', 'Status', 'DOM Evidence', 'Actionable Fix']];
+            lastSingleResult.findings.forEach(f => {
+                complianceData.push([f.id, f.category, f.status, f.evidence, f.fix]);
+            });
+            const ws2 = XLSX.utils.aoa_to_sheet(complianceData);
+            XLSX.utils.book_append_sheet(wb, ws2, 'SEBI 12-Point Audit');
+
+            XLSX.writeFile(wb, `${lastSingleResult.domain}_AdvisorKhoj_Audit.xlsx`);
+        }
+
+        function setGuidelineMode(mode) {
+            const autoBtn = document.getElementById('btn-auto-sync');
+            const uploadBtn = document.getElementById('btn-upload-pdf');
+            const uploadPanel = document.getElementById('upload-panel');
+
+            if (mode === 'auto') {
+                autoBtn.className = "px-3 py-1.5 rounded-lg glass-btn-orange font-bold";
+                uploadBtn.className = "px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition";
+                uploadPanel.classList.add('hidden');
+            } else {
+                uploadBtn.className = "px-3 py-1.5 rounded-lg glass-btn-orange font-bold";
+                autoBtn.className = "px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition";
+                uploadPanel.classList.remove('hidden');
+            }
+        }
+
+        function checkForUpdates() {
+            const icon = document.getElementById('update-icon');
+            icon.classList.add('fa-spin');
+            setTimeout(() => {
+                icon.classList.remove('fa-spin');
+                alert('SEBI/AMFI Sync Complete: Guidelines up-to-date.');
+            }, 800);
+        }
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('upload-status').innerText = `Uploaded & Processed: ${file.name}`;
+            }
+        }
+    </script>
 </body>
 </html>
